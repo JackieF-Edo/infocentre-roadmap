@@ -283,6 +283,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModalDirect()
 document.addEventListener('DOMContentLoaded', function(){
 const sprints = [...new Set(ALL_DATA.map(r=>r.sprint).filter(Boolean))].sort();
 const sprintSel = document.getElementById('sprintFilter');
+const noSprintOpt = document.createElement('option'); noSprintOpt.value='__none__'; noSprintOpt.textContent='No Sprint Assigned'; sprintSel.appendChild(noSprintOpt);
 sprints.forEach(s => { const o=document.createElement('option'); o.value=o.textContent=s; sprintSel.appendChild(o); });
 let collapsedSwimlanes = new Set();
 function getFiltered() {
@@ -295,7 +296,7 @@ function getFiltered() {
     if(sl && r.swimlane!==sl) return false;
     if(st && r.status!==st) return false;
     if(pr && r.priority!==pr) return false;
-    if(sp && r.sprint!==sp) return false;
+    if(sp) { if(sp==='__none__' ? (r.sprint && r.sprint.trim()!=='') : r.sprint!==sp) return false; }
     if(q) { const h=[r.ifid,r.summary,r.description,r.customer,r.edoNotes,r.mckNotes,r.sprint,r.status].join(' ').toLowerCase(); if(!h.includes(q)) return false; }
     return true;
   });
