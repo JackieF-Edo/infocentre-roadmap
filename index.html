@@ -264,6 +264,22 @@ function formatDate(d) {
   const p = d.split('/');
   return p.length===3 ? `${p[1]} ${parseInt(p[0])}, '${p[2]}` : d;
 }
+function openModal(ifid) {
+  const r=ALL_DATA.find(x=>x.ifid===ifid); if(!r) return;
+  document.getElementById('mIfid').textContent=r.ifid+(r.epic?' · Epic: '+r.epic:'');
+  document.getElementById('mTitle').textContent=r.summary;
+  let body=`<div class="modal-meta">${statusBadge(r.status)}${prioritySpan(r.priority)}${r.sprint?`<span class="badge badge-default">${esc(r.sprint)}</span>`:''}${r.storyPoints?`<span class="badge badge-default" style="background:#EAF4FB;color:#1A5276">SP: ${esc(r.storyPoints)}</span>`:''}${r.customer?`<span class="badge badge-default" style="background:#F5EEF8;color:#6C3483">&#x1F464; ${esc(r.customer)}</span>`:''}${r.createdDate?`<span style="font-size:11px;color:#888;margin-left:auto">${formatDate(r.createdDate)}</span>`:''}</div>`;
+  if(r.description) body+=`<div class="modal-section"><div class="modal-section-label">Description</div><div class="modal-section-body">${esc(r.description)}</div></div>`;
+  if(r.acceptanceCriteria) body+=`<div class="modal-section"><div class="modal-section-label">Acceptance Criteria</div><div class="modal-section-body">${esc(r.acceptanceCriteria)}</div></div>`;
+  if(r.edoNotes||r.mckNotes){body+=`<div class="modal-section"><div class="modal-section-label">Notes</div>`;if(r.edoNotes) body+=`<div class="modal-note-block edo"><div class="modal-note-label">Edo Notes</div>${esc(r.edoNotes)}</div>`;if(r.mckNotes) body+=`<div class="modal-note-block mck"><div class="modal-note-label">McK Notes</div>${esc(r.mckNotes)}</div>`;body+=`</div>`;}
+  if(r.comments){const lines=r.comments.split('\n').filter(Boolean);body+=`<div class="modal-section"><div class="modal-section-label">Comments</div>`;lines.forEach(line=>{const m=line.match(/^\[([^\]]+)\]\s*(.*)$/);if(m) body+=`<div class="modal-comment"><div class="modal-comment-date">${esc(m[1])}</div>${esc(m[2])}</div>`;else body+=`<div class="modal-comment">${esc(line)}</div>`;});body+=`</div>`;}
+  document.getElementById('mBody').innerHTML=body;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(e){ if(e.target===document.getElementById('modalOverlay')) closeModalDirect(); }
+function closeModalDirect(){ document.getElementById('modalOverlay').classList.remove('open'); document.body.style.overflow=''; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModalDirect(); });
 document.addEventListener('DOMContentLoaded', function(){
 const sprints = [...new Set(ALL_DATA.map(r=>r.sprint).filter(Boolean))].sort();
 const sprintSel = document.getElementById('sprintFilter');
@@ -294,7 +310,7 @@ function renderTable(rows, slName) {
   let html=`<div class="table-wrap"><table><colgroup><col class="col-ifid"><col class="col-status"><col class="col-priority"><col class="col-sprint"><col class="col-sp"><col class="col-customer"><col class="col-created"><col class="col-summary"></colgroup><thead><tr><th data-col="ifid">ID <span class="sort-icon">&#x21D5;</span></th><th data-col="status">Status <span class="sort-icon">&#x21D5;</span></th><th data-col="priority">Priority <span class="sort-icon">&#x21D5;</span></th><th data-col="sprint">Sprint <span class="sort-icon">&#x21D5;</span></th><th data-col="storyPoints" style="text-align:center">SP <span class="sort-icon">&#x21D5;</span></th><th data-col="customer">Customer <span class="sort-icon">&#x21D5;</span></th><th data-col="createdDate">Created <span class="sort-icon">&#x21D5;</span></th><th data-col="summary">Summary &amp; Description <span class="sort-icon">&#x21D5;</span></th></tr></thead><tbody>`;
   rows.forEach(r => {
     const hasNotes=r.edoNotes||r.mckNotes;
-    html+=`<tr class="${hasNotes?'has-notes':''}" onclick="openModal('${esc(r.ifid)}')" style="cursor:pointer"><td class="td-ifid"><a href="https://edoenergy.atlassian.net/browse/${esc(r.ifid)}" target="_blank" onclick="event.stopPropagation()">${esc(r.ifid)}</a></td><td>${statusBadge(r.status)}</td><td>${prioritySpan(r.priority)}</td><td class="td-sprint">${esc(r.sprint)||'&#x2014;'}</td><td class="sp-cell">${r.storyPoints||'&#x2014;'}</td><td class="td-customer">${esc(r.customer)||'&#x2014;'}</td><td class="td-created">${formatDate(r.createdDate)||'&#x2014;'}</td><td class="td-summary">${r.epic?`<span class="epic-tag">${esc(r.epic)}</span>`:''}  <span class="summary-text">${esc(r.summary)}</span>${r.description?`<span class="desc-text">${esc(r.description.substring(0,140))}${r.description.length>140?'&#x2026;':''}</span>`:''}</td></tr>`;
+    html+=`<tr class="${hasNotes?'has-notes':''}" onclick="openModal('${esc(r.ifid)}')" style="cursor:pointer"><td class="td-ifid">${esc(r.ifid)}</td><td>${statusBadge(r.status)}</td><td>${prioritySpan(r.priority)}</td><td class="td-sprint">${esc(r.sprint)||'&#x2014;'}</td><td class="sp-cell">${r.storyPoints||'&#x2014;'}</td><td class="td-customer">${esc(r.customer)||'&#x2014;'}</td><td class="td-created">${formatDate(r.createdDate)||'&#x2014;'}</td><td class="td-summary">${r.epic?`<span class="epic-tag">${esc(r.epic)}</span>`:''}  <span class="summary-text">${esc(r.summary)}</span>${r.description?`<span class="desc-text">${esc(r.description.substring(0,140))}${r.description.length>140?'&#x2026;':''}</span>`:''}</td></tr>`;
     if(hasNotes) html+=`<tr class="notes-row"><td colspan="8"><div class="notes-inner">${r.edoNotes?`<div class="note-block edo"><div class="note-label">Edo Notes</div><div class="note-text">${esc(r.edoNotes)}</div></div>`:''}${r.mckNotes?`<div class="note-block mck"><div class="note-label">McK Notes</div><div class="note-text">${esc(r.mckNotes)}</div></div>`:''}</div></td></tr>`;
   });
   html+=`</tbody></table></div>`;
@@ -328,22 +344,10 @@ function toggleSwimlane(name) {
   if(collapsedSwimlanes.has(name)) collapsedSwimlanes.delete(name); else collapsedSwimlanes.add(name);
   document.querySelector(`.swimlane-section[data-sl="${CSS.escape(name)}"]`).classList.toggle('collapsed');
 }
-function openModal(ifid) {
-  const r=ALL_DATA.find(x=>x.ifid===ifid); if(!r) return;
-  document.getElementById('mIfid').textContent=r.ifid+(r.epic?' · Epic: '+r.epic:'');
-  document.getElementById('mTitle').textContent=r.summary;
-  let body=`<div class="modal-meta">${statusBadge(r.status)}${prioritySpan(r.priority)}${r.sprint?`<span class="badge badge-default">${esc(r.sprint)}</span>`:''}${r.storyPoints?`<span class="badge badge-default" style="background:#EAF4FB;color:#1A5276">SP: ${esc(r.storyPoints)}</span>`:''}${r.customer?`<span class="badge badge-default" style="background:#F5EEF8;color:#6C3483">&#x1F464; ${esc(r.customer)}</span>`:''}${r.createdDate?`<span style="font-size:11px;color:#888;margin-left:auto">${formatDate(r.createdDate)}</span>`:''}</div>`;
-  if(r.description) body+=`<div class="modal-section"><div class="modal-section-label">Description</div><div class="modal-section-body">${esc(r.description)}</div></div>`;
-  if(r.acceptanceCriteria) body+=`<div class="modal-section"><div class="modal-section-label">Acceptance Criteria</div><div class="modal-section-body">${esc(r.acceptanceCriteria)}</div></div>`;
-  if(r.edoNotes||r.mckNotes){body+=`<div class="modal-section"><div class="modal-section-label">Notes</div>`;if(r.edoNotes) body+=`<div class="modal-note-block edo"><div class="modal-note-label">Edo Notes</div>${esc(r.edoNotes)}</div>`;if(r.mckNotes) body+=`<div class="modal-note-block mck"><div class="modal-note-label">McK Notes</div>${esc(r.mckNotes)}</div>`;body+=`</div>`;}
-  if(r.comments){const lines=r.comments.split('\n').filter(Boolean);body+=`<div class="modal-section"><div class="modal-section-label">Comments</div>`;lines.forEach(line=>{const m=line.match(/^\[([^\]]+)\]\s*(.*)$/);if(m) body+=`<div class="modal-comment"><div class="modal-comment-date">${esc(m[1])}</div>${esc(m[2])}</div>`;else body+=`<div class="modal-comment">${esc(line)}</div>`;});body+=`</div>`;}
-  document.getElementById('mBody').innerHTML=body;
-  document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeModal(e){ if(e.target===document.getElementById('modalOverlay')) closeModalDirect(); }
-function closeModalDirect(){ document.getElementById('modalOverlay').classList.remove('open'); document.body.style.overflow=''; }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModalDirect(); });
+
+
+
+
 function exportCSV(){
   const rows=getFiltered();
   const headers=['IFID','Summary','Status','Priority','Sprint','Story Points','Swimlane','Customer','Created','Description','Acceptance Criteria','Edo Notes','McK Notes','Comments'];
